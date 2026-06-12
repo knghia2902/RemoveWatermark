@@ -92,6 +92,10 @@ $("seek").addEventListener("input", () => {
   drawOverlay();
 });
 
+$("seek").addEventListener("change", () => {
+  isSeeking = false;
+});
+
 video.addEventListener("timeupdate", () => {
   if (!isSeeking) {
     $("seek").value = video.currentTime;
@@ -102,7 +106,7 @@ video.addEventListener("timeupdate", () => {
       drawOverlay();
   }
   if ($("finalVideo") && !$("resultViewer").classList.contains("hidden")) {
-      if (Math.abs($("finalVideo").currentTime - video.currentTime) > 0.3) {
+      if (!isSeeking && $("finalVideo").readyState >= 2 && Math.abs($("finalVideo").currentTime - video.currentTime) > 0.4) {
           $("finalVideo").currentTime = video.currentTime;
       }
   }
@@ -392,7 +396,7 @@ async function poll(jobId) {
       $("progress").value = 100;
       $("percent").textContent = "100%";
       $("download").href = job.download_url;
-      if ($("finalVideo")) $("finalVideo").src = job.download_url;
+      if ($("finalVideo")) $("finalVideo").src = `/api/work/${jobId}/result.mp4`;
       if ($("resultPreview")) $("resultPreview").classList.remove("hidden");
       if ($("resultViewer")) $("resultViewer").classList.remove("hidden");
       $("process").disabled = false;
