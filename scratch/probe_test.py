@@ -1,23 +1,11 @@
-import os
-import glob
-import subprocess
-
-jobs_dir = "jobs"
-job_dirs = sorted(glob.glob(f"{jobs_dir}/*"), key=os.path.getmtime, reverse=True)
-for d in job_dirs:
-    result_path = os.path.join(d, "result.mp4")
-    if os.path.exists(result_path):
-        print(f"Found latest result: {result_path}")
-        size = os.path.getsize(result_path)
-        print(f"Size: {size} bytes")
-        
-        # Probe video
-        cmd = ["ffprobe", "-v", "error", "-show_entries", "stream=codec_name,width,height,duration", "-of", "default=noprint_wrappers=1", result_path]
-        try:
-            out = subprocess.check_output(cmd, text=True)
-            print(out)
-        except Exception as e:
-            print(f"Error probing: {e}")
-        break
-else:
-    print("No result.mp4 found.")
+import urllib.request
+try:
+    req = urllib.request.Request("http://127.0.0.1:8765/api/work/5ce786a39f4a4a22bf5b8d3bceeead6d/result.mp4")
+    req.add_header("Range", "bytes=1000-2000")
+    with urllib.request.urlopen(req) as response:
+        print("Status Code:", response.status)
+        print("Headers:", response.headers)
+        data = response.read()
+        print("Length:", len(data))
+except Exception as e:
+    print("Error:", e)

@@ -423,10 +423,50 @@ def system():
     }
 
 
-# Mount WORK_DIR directly to enable flawless Range request seeking for videos
-app.mount("/api/work", StaticFiles(directory=WORK_DIR), name="work")
+import mimetypes
 
-@app.delete("/api/history/{job_id}")
+@app.get("/api/work/{upload_id}/{filename}")
+def stream_video(upload_id: str, filename: str, request: Request):
+    path = WORK_DIR / upload_id / filename
+    if not path.exists() or not path.is_file():
+        raise HTTPException(404, "File không tồn tại")
+        
+    file_size = path.stat().st_size
+    content_type, _ = mimetypes.guess_type(filename)
+    if not content_type:
+        content_type = "application/octet-stream"
+
+    range_header = request.headers.get("Range")
+    if range_header:
+        match = re.search(r"bytes=(\d+)-(\d*)", range_header)
+        byte1 = int(match.group(1)) if match else 0
+        byte2 = int(match.group(2)) if match and match.group(2) else file_size - 1
+        # Prevent out-of-bounds
+        byte1 = min(byte1, file_size - 1)
+        byte2 = min(byte2, file_size - 1)
+        length = byte2 - byte1 + 1
+        
+        def file_iterator(filepath, start, length, chunk_size=8192):
+            with open(filepath, "rb") as f:
+                f.seek(start)
+                remaining = length
+                while remaining > 0:
+                    data = f.read(min(chunk_size, remaining))
+                    if not data:
+                        break
+                    yield data
+                    remaining -= len(data)
+
+        headers = {
+            "Content-Range": f"bytes {byte1}-{byte2}/{file_size}",
+            "Accept-Ranges": "bytes",
+            "Content-Length": str(length),
+            "Content-Type": content_type,
+        }
+        from fastapi.responses import StreamingResponse
+        return StreamingResponse(file_iterator(path, byte1, length), status_code=206, headers=headers)
+    
+    return FileResponse(path, headers={"Accept-Ranges": "bytes"})
 def delete_history(job_id: str):
     job_dir = WORK_DIR / job_id
     if job_dir.exists() and job_dir.is_dir():
