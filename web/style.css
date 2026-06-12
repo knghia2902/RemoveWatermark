@@ -82,3 +82,49 @@ progress { width: 100%; height: 13px; accent-color: #7be7c4; }
   flex-direction: column;
   justify-content: center;
 }
+
+.import-zone {
+  position: absolute;
+  inset: 16px;
+  border: 2px dashed rgba(123, 231, 196, 0.3);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  background: rgba(3, 5, 7, 0.6);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.import-zone:hover {
+  background: rgba(3, 5, 7, 0.8);
+  border-color: rgba(123, 231, 196, 0.8);
+  color: rgba(123, 231, 196, 1);
+}
+
+.import-zone svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.import-zone:hover svg {
+  transform: scale(1.1);
+}
+
+.import-zone .title {
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: inherit;
+}
+
+.import-zone .subtitle {
+  font-size: 13px;
+  margin-top: 8px;
+  opacity: 0.6;
+}

@@ -42,10 +42,9 @@ function loadWorkspace(id, video_url, fps) {
 
 if ($("viewerUpload")) {
     $("viewerUpload").addEventListener("change", (e) => {
-        const overlayText = $("viewerUploadOverlay").querySelector("span");
+        const overlayText = $("viewerUploadOverlay").querySelector(".title");
         if (overlayText) {
-            overlayText.textContent = "LOADING...";
-            overlayText.style.color = "rgba(123, 231, 196, 0.5)";
+            overlayText.textContent = "LOADING MEDIA...";
         }
         handleFileUpload(e.target.files[0]);
     });
