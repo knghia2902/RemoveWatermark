@@ -127,6 +127,19 @@ video.addEventListener("pause", () => {
 });
 window.addEventListener("resize", resizeCanvas);
 
+if ($("originalViewer")) {
+  $("originalViewer").addEventListener("dblclick", () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else $("originalViewer").requestFullscreen();
+  });
+}
+if ($("resultViewer")) {
+  $("resultViewer").addEventListener("dblclick", () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else $("resultViewer").requestFullscreen();
+  });
+}
+
 function point(event) {
   const rect = canvas.getBoundingClientRect();
   return {
@@ -416,6 +429,7 @@ async function showHistory() {
             </div>
         `;
         div.querySelector(".btn-open").addEventListener("click", () => {
+            if ($("historyModal")) $("historyModal").classList.add("hidden");
             loadWorkspace(item.id, item.source_url, 30);
             if (item.result_url) {
                 if ($("finalVideo")) $("finalVideo").src = item.result_url;
