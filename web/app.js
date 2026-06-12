@@ -118,16 +118,16 @@ $("playPause").addEventListener("click", () => {
 });
 
 video.addEventListener("play", () => { 
-  if ($("playIcon")) $("playIcon").classList.add("hidden");
-  if ($("pauseIcon")) $("pauseIcon").classList.remove("hidden");
+  if ($("playIcon")) $("playIcon").style.display = "none";
+  if ($("pauseIcon")) $("pauseIcon").style.display = "block";
   if ($("finalVideo") && !$("resultViewer").classList.contains("hidden")) {
       $("finalVideo").currentTime = video.currentTime;
       $("finalVideo").play();
   }
 });
 video.addEventListener("pause", () => { 
-  if ($("playIcon")) $("playIcon").classList.remove("hidden");
-  if ($("pauseIcon")) $("pauseIcon").classList.add("hidden");
+  if ($("playIcon")) $("playIcon").style.display = "block";
+  if ($("pauseIcon")) $("pauseIcon").style.display = "none";
   if ($("finalVideo") && !$("resultViewer").classList.contains("hidden")) {
       $("finalVideo").pause();
   }
