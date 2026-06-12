@@ -297,7 +297,7 @@ $("process").addEventListener("click", async () => {
   }
   $("process").disabled = true;
   $("progressPanel").classList.remove("hidden");
-  $("download").classList.add("hidden");
+  if ($("resultPreview")) $("resultPreview").classList.add("hidden");
   const response = await fetch("/api/process", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -331,12 +331,16 @@ async function poll(jobId) {
   $("detectionStats").textContent = job.detection_samples
     ? `Detect thành công tại ${job.detections}/${job.detection_samples} mốc; các frame còn lại được nội suy.`
     : "";
-  if (job.status === "done") {
-    $("download").href = job.download_url;
-    $("download").classList.remove("hidden");
-    $("process").disabled = false;
-    return;
-  }
+    if (job.status === "done") {
+      $("status").textContent = "Hoàn tất!";
+      $("progress").value = 100;
+      $("percent").textContent = "100%";
+      $("download").href = job.download_url;
+      if ($("finalVideo")) $("finalVideo").src = job.download_url;
+      if ($("resultPreview")) $("resultPreview").classList.remove("hidden");
+      $("process").disabled = false;
+      return;
+    }
   if (job.status === "error") {
     $("process").disabled = false;
     return;

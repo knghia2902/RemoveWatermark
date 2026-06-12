@@ -112,12 +112,16 @@
           </div>
         </section>
 
-        <section id="progressPanel" class="panel hidden" style="margin-top: 0;">
-          <div class="progress-head"><strong id="status">Đang xử lý...</strong><span id="percent">0%</span></div>
-          <progress id="progress" max="100" value="0"></progress>
-          <p id="detectionStats" class="stats"></p>
-          <a id="download" class="download hidden" style="width: 100%;">Tải video kết quả</a>
-        </section>
+          <section id="progressPanel" class="panel hidden" style="margin-top: 0;">
+            <div class="progress-head"><strong id="status">Đang xử lý...</strong><span id="percent">0%</span></div>
+            <progress id="progress" max="100" value="0"></progress>
+            <p id="detectionStats" class="stats"></p>
+            
+            <div id="resultPreview" class="hidden" style="margin-top: 16px; display: flex; flex-direction: column; gap: 12px;">
+              <video id="finalVideo" controls style="width: 100%; border-radius: 8px; background: #030507; max-height: 250px;"></video>
+              <a id="download" class="download" style="width: 100%; text-align: center;">Tải video kết quả</a>
+            </div>
+          </section>
       </div>
 
       <div class="main-content">
@@ -144,6 +148,6 @@
       </div>
     </div>
   </main>
-  <script src="/static/app.js?v=10"></script>
+  <script src="/static/app.js?v=11"></script>
 </body>
 </html>
