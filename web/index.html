@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AI Video Watermark Remover</title>
-  <link rel="stylesheet" href="/static/style.css?v=18">
+  <link rel="stylesheet" href="/static/style.css?v=19">
 </head>
 <body>
   <main>
@@ -19,9 +19,12 @@
 
     <div id="mainWorkspace" class="app-layout">
       <!-- History Column -->
-      <div class="history-column" style="flex: 0 0 300px; display: flex; flex-direction: column; gap: 16px;">
+      <div id="historyColumn" class="history-column" style="flex: 0 0 300px; display: flex; flex-direction: column; gap: 16px; transition: all 0.3s ease;">
         <section class="panel" style="flex: 1; display: flex; flex-direction: column; margin-top: 0;">
-          <h2 style="font-size: 16px; margin-top: 0; margin-bottom: 16px; color: #7be7c4; border-bottom: 1px solid #333; padding-bottom: 12px;">Lịch sử Video</h2>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 12px; margin-bottom: 16px;">
+            <h2 style="font-size: 16px; margin: 0; color: #7be7c4;">Lịch sử Video</h2>
+            <span id="closeHistory" style="cursor: pointer; opacity: 0.6; font-size: 14px;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6" title="Ẩn Lịch sử">✖</span>
+          </div>
           <div id="historyListColumn" style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 8px;">
             <!-- history items populated here -->
           </div>
@@ -31,6 +34,7 @@
       <div class="sidebar">
         <section class="panel controls-panel" style="margin-top: 0;">
           <div style="display: flex; flex-direction: column; gap: 16px;">
+            <button id="showHistoryBtn" class="secondary hidden" style="width: 100%; border-style: dashed;">Mở lại Cột Lịch Sử</button>
             <div>
               <label>Chế độ xử lý</label>
               <select id="mode">
@@ -151,7 +155,7 @@
                 <span style="cursor: pointer; margin-left: 8px;" onclick="document.getElementById('resultViewer').requestFullscreen()" title="Phóng to">⛶</span>
               </p>
               <div style="position: relative; width: 100%; height: 100%;">
-                <video id="finalVideo" preload="auto" playsinline style="width: 100%; height: 100%; display: block; object-fit: contain;"></video>
+                <video id="finalVideo" muted preload="auto" playsinline style="width: 100%; height: 100%; display: block; object-fit: contain;"></video>
               </div>
             </div>
           </div>
@@ -176,6 +180,6 @@
 
 
 
-  <script src="/static/app.js?v=18"></script>
+  <script src="/static/app.js?v=19"></script>
 </body>
 </html>

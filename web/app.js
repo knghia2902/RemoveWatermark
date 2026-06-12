@@ -140,6 +140,17 @@ if ($("resultViewer")) {
   });
 }
 
+if ($("closeHistory") && $("historyColumn") && $("showHistoryBtn")) {
+    $("closeHistory").addEventListener("click", () => {
+        $("historyColumn").classList.add("hidden");
+        $("showHistoryBtn").classList.remove("hidden");
+    });
+    $("showHistoryBtn").addEventListener("click", () => {
+        $("historyColumn").classList.remove("hidden");
+        $("showHistoryBtn").classList.add("hidden");
+    });
+}
+
 function point(event) {
   const rect = canvas.getBoundingClientRect();
   return {
