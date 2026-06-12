@@ -354,20 +354,7 @@ $("clearKf").addEventListener("click", () => {
   drawOverlay();
 });
 
-if ($("useCurrentStart")) {
-  $("useCurrentStart").addEventListener("click", () => {
-    $("startTime").value = video.currentTime.toFixed(2);
-  });
-}
-if ($("useCurrentEnd")) {
-  $("useCurrentEnd").addEventListener("click", () => {
-    $("endTime").value = video.currentTime.toFixed(2);
-  });
-}
 
-$("useCurrent").addEventListener("click", () => {
-  $("startTime").value = video.currentTime.toFixed(2);
-});
 
 $("previewDetect").addEventListener("click", async () => {
   if (!selection?.bbox || !uploadId) return;
