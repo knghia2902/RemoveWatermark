@@ -61,6 +61,9 @@ $("seek").addEventListener("touchend", () => isSeeking = false);
 
 $("seek").addEventListener("input", () => {
   video.currentTime = Number($("seek").value);
+  if ($("finalVideo") && !$("resultViewer").classList.contains("hidden")) {
+      $("finalVideo").currentTime = video.currentTime;
+  }
   detectedBoxes = [];
   updateKfButton();
   drawOverlay();
@@ -81,8 +84,19 @@ $("playPause").addEventListener("click", () => {
   else video.pause();
 });
 
-video.addEventListener("play", () => { $("playPause").textContent = "⏸"; });
-video.addEventListener("pause", () => { $("playPause").textContent = "▶"; });
+video.addEventListener("play", () => { 
+  $("playPause").textContent = "⏸"; 
+  if ($("finalVideo") && !$("resultViewer").classList.contains("hidden")) {
+      $("finalVideo").currentTime = video.currentTime;
+      $("finalVideo").play();
+  }
+});
+video.addEventListener("pause", () => { 
+  $("playPause").textContent = "▶"; 
+  if ($("finalVideo") && !$("resultViewer").classList.contains("hidden")) {
+      $("finalVideo").pause();
+  }
+});
 window.addEventListener("resize", resizeCanvas);
 
 function point(event) {
@@ -298,6 +312,7 @@ $("process").addEventListener("click", async () => {
   $("process").disabled = true;
   $("progressPanel").classList.remove("hidden");
   if ($("resultPreview")) $("resultPreview").classList.add("hidden");
+  if ($("resultViewer")) $("resultViewer").classList.add("hidden");
   const response = await fetch("/api/process", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -338,6 +353,7 @@ async function poll(jobId) {
       $("download").href = job.download_url;
       if ($("finalVideo")) $("finalVideo").src = job.download_url;
       if ($("resultPreview")) $("resultPreview").classList.remove("hidden");
+      if ($("resultViewer")) $("resultViewer").classList.remove("hidden");
       $("process").disabled = false;
       return;
     }
