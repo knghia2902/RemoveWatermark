@@ -340,7 +340,7 @@ def process_job(job_id, source, output, request):
                     "-s:v", f"{width}x{height}", "-r", f"{fps:.12f}",
                     "-i", "pipe:0", "-i", str(source),
                     "-map", "0:v:0", "-map", "1:a:0?",
-                    "-c:v", "libx264", *encode_options,
+                    "-c:v", "libx264", "-g", "15", *encode_options,
                     "-pix_fmt", "yuv420p",
                     "-colorspace", "bt709", "-color_primaries", "bt709",
                     "-color_trc", "bt709",

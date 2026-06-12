@@ -104,6 +104,11 @@ $("seek").addEventListener("input", () => {
 
 $("seek").addEventListener("change", () => {
   isSeeking = false;
+  const targetTime = Number($("seek").value);
+  video.currentTime = targetTime;
+  if ($("finalVideo") && !$("resultViewer").classList.contains("hidden")) {
+      $("finalVideo").currentTime = targetTime;
+  }
 });
 
 video.addEventListener("timeupdate", () => {
