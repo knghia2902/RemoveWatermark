@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Video Watermark Remover</title>
+  <link rel="stylesheet" href="/static/style.css?v=9">
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <p class="eyebrow">LOCAL AI VIDEO TOOL</p>
+        <h1>AI Watermark Remover</h1>
+        <p class="sub">Fixed-mask hoặc tự detect logo di chuyển trong vùng tìm kiếm, nội suy vị trí và inpaint mọi frame.</p>
+      </div>
+      <div id="device" class="device">Đang kiểm tra GPU...</div>
+    </header>
+
+    <section id="initialUpload" class="panel upload-panel" style="max-width: 480px; margin: 80px auto; display: flex; flex-direction: column; align-items: stretch; gap: 16px;">
+      <h2 style="margin: 0; text-align: center; font-size: 1.25em; color: #eef2f8;">Bắt đầu với một Video</h2>
+      <p style="margin: 0; text-align: center; color: #91a0b2; font-size: 0.95em;">Chọn video từ máy tính của bạn để tiến hành xóa watermark</p>
+      <label class="file-picker" style="width: 100%; margin-top: 8px;">
+        <input id="file" type="file" accept="video/*">
+        <span style="width: 100%; padding: 14px;">Chọn video từ máy...</span>
+      </label>
+      <span id="fileName" style="text-align: center; font-size: 13px; color: #91a0b2;">Chưa chọn file</span>
+      <button id="upload" style="width: 100%; padding: 14px;">Tải lên hệ thống</button>
+    </section>
+
+    <div id="mainWorkspace" class="app-layout hidden">
+      <div class="sidebar">
+        <section class="panel controls-panel" style="margin-top: 0;">
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div>
+              <label>Chế độ xử lý</label>
+              <select id="mode">
+                <option value="auto">Auto detect + tracking</option>
+                <option value="fixed">Fixed mask</option>
+                <option value="keyframe">Manual Keyframes (Chuẩn CapCut)</option>
+              </select>
+            </div>
+
+            <div>
+              <label>Thời điểm bắt đầu xử lý</label>
+              <div class="time-row">
+                <input id="startTime" type="number" min="0" step="0.01" value="0">
+                <button id="useCurrent" class="secondary" style="padding: 0 12px; white-space: nowrap;">Dùng giờ HT</button>
+              </div>
+            </div>
+
+            <div>
+              <label id="bboxLabel">ROI tìm kiếm logo</label>
+              <output id="bbox">Kéo chuột trên video</output>
+            </div>
+
+            <div id="keyframeSettings" class="settings-grid hidden" style="grid-template-columns: 1fr;">
+              <div>
+                <div style="display: flex; gap: 8px; margin-top: 4px;">
+                  <button id="toggleKf" class="secondary" style="font-weight: bold; flex: 1;">♦ Thêm</button>
+                  <button id="clearKf" class="secondary" style="flex: 1;">Xóa tất cả</button>
+                </div>
+                <p style="font-size: 0.85em; opacity: 0.8; margin-top: 8px; line-height: 1.4;">
+                  Kéo thanh tua xem nội suy (màu vàng). Nhấn <strong>♦ Thêm</strong> để đóng đinh (màu đỏ).
+                </p>
+              </div>
+            </div>
+
+            <div id="autoSettings" class="settings-grid" style="grid-template-columns: 2fr 1fr; gap: 12px;">
+              <div>
+                <label>Detection prompt</label>
+                <input id="prompt" type="text" value="small white sparkle watermark logo">
+              </div>
+              <div>
+                <label>Detect / N frame</label>
+                <input id="interval" type="number" min="1" max="60" value="10">
+              </div>
+              <button id="previewDetect" class="secondary" disabled style="grid-column: 1 / -1;">Detect thử frame hiện tại</button>
+            </div>
+
+            <div>
+              <label>Mask padding (pixel)</label>
+              <input id="padding" type="number" min="0" max="100" value="12">
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+              <div style="flex: 1; min-width: 0;">
+                <label>Model Inpainting</label>
+                <select id="inpaintModel">
+                  <option value="lama">LaMA (Tốt nhất)</option>
+                  <option value="anime-lama">Anime</option>
+                  <option value="zits">ZITS</option>
+                  <option value="mat">MAT</option>
+                  <option value="ldm">LDM</option>
+                  <option value="fcf">FCF</option>
+                  <option value="cv2">OpenCV</option>
+                </select>
+              </div>
+
+              <div style="flex: 1; min-width: 0;">
+                <label>Chất lượng</label>
+                <select id="quality">
+                  <option value="high">High (CRF 14)</option>
+                  <option value="standard">Standard</option>
+                  <option value="maximum">Max (CRF 10)</option>
+                  <option value="lossless">Lossless</option>
+                </select>
+              </div>
+            </div>
+
+            <button id="process" disabled style="margin-top: 8px;">Chạy AI removal</button>
+          </div>
+        </section>
+
+        <section id="progressPanel" class="panel hidden" style="margin-top: 0;">
+          <div class="progress-head"><strong id="status">Đang xử lý...</strong><span id="percent">0%</span></div>
+          <progress id="progress" max="100" value="0"></progress>
+          <p id="detectionStats" class="stats"></p>
+          <a id="download" class="download hidden" style="width: 100%;">Tải video kết quả</a>
+        </section>
+      </div>
+
+      <div class="main-content">
+        <section class="panel" style="display: flex; flex-direction: column; gap: 16px; margin-top: 0;">
+          <div class="viewer">
+            <video id="video"></video>
+            <canvas id="overlay"></canvas>
+          </div>
+
+          <div class="seek-control">
+            <label style="display: flex; justify-content: space-between;">
+              <span>Vị trí trong video</span>
+              <span id="currentTime" style="color: #7be7c4; font-weight: bold;">0.00s</span>
+            </label>
+            <div class="seek-row" style="position: relative;">
+              <button id="playPause" class="secondary" style="padding: 0; width: 43px; height: 43px; font-size: 1.2em; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">▶</button>
+              <div style="position: relative; flex: 1; display: flex; align-items: center;">
+                <div id="kfMarkers" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3;"></div>
+                <input id="seek" type="range" min="0" max="100" step="0.01" value="0" style="width: 100%; position: relative; z-index: 2;">
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+  <script src="/static/app.js?v=10"></script>
+</body>
+</html>

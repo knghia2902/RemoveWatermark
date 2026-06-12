@@ -1,0 +1,345 @@
+const $ = (id) => document.getElementById(id);
+const file = $("file");
+const upload = $("upload");
+const video = $("video");
+const canvas = $("overlay");
+const ctx = canvas.getContext("2d");
+let uploadId = null;
+let selection = null;
+let detectedBoxes = [];
+let dragging = false;
+let start = null;
+
+fetch("/api/system").then(r => r.json()).then(data => {
+  $("device").textContent = data.device === "cuda" ? `GPU: ${data.gpu}` : "CPU mode";
+});
+
+file.addEventListener("change", () => {
+  $("fileName").textContent = file.files[0]?.name || "Chưa chọn file";
+});
+
+upload.addEventListener("click", async () => {
+  if (!file.files[0]) return;
+  upload.disabled = true;
+  upload.textContent = "Đang upload...";
+  const form = new FormData();
+  form.append("file", file.files[0]);
+  const response = await fetch("/api/upload", { method: "POST", body: form });
+  const data = await response.json();
+  upload.disabled = false;
+  upload.textContent = "Tải video lên local app";
+  if (!response.ok) return alert(data.detail || "Upload lỗi");
+  uploadId = data.upload_id;
+  window.videoFps = data.fps || 30;
+  selection = null;
+  detectedBoxes = [];
+  window.manualKeyframes = {};
+  video.src = data.video_url;
+  if ($("initialUpload")) $("initialUpload").classList.add("hidden");
+  if ($("mainWorkspace")) $("mainWorkspace").classList.remove("hidden");
+});
+
+function resizeCanvas() {
+  const rect = video.getBoundingClientRect();
+  canvas.width = Math.round(rect.width * devicePixelRatio);
+  canvas.height = Math.round(rect.height * devicePixelRatio);
+  canvas.style.width = `${rect.width}px`;
+  canvas.style.height = `${rect.height}px`;
+  drawOverlay();
+}
+
+video.addEventListener("loadedmetadata", () => {
+  resizeCanvas();
+  $("seek").max = video.duration;
+  renderKeyframeMarkers();
+});
+let isSeeking = false;
+$("seek").addEventListener("mousedown", () => isSeeking = true);
+$("seek").addEventListener("touchstart", () => isSeeking = true);
+$("seek").addEventListener("mouseup", () => isSeeking = false);
+$("seek").addEventListener("touchend", () => isSeeking = false);
+
+$("seek").addEventListener("input", () => {
+  video.currentTime = Number($("seek").value);
+  detectedBoxes = [];
+  updateKfButton();
+  drawOverlay();
+});
+
+video.addEventListener("timeupdate", () => {
+  if (!isSeeking) {
+    $("seek").value = video.currentTime;
+  }
+  $("currentTime").textContent = `${video.currentTime.toFixed(2)}s`;
+  if ($("mode").value === "keyframe") {
+      updateKfButton();
+      drawOverlay();
+  }
+});
+$("playPause").addEventListener("click", () => {
+  if (video.paused) video.play();
+  else video.pause();
+});
+
+video.addEventListener("play", () => { $("playPause").textContent = "⏸"; });
+video.addEventListener("pause", () => { $("playPause").textContent = "▶"; });
+window.addEventListener("resize", resizeCanvas);
+
+function point(event) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: Math.max(0, Math.min(rect.width, event.clientX - rect.left)),
+    y: Math.max(0, Math.min(rect.height, event.clientY - rect.top)),
+  };
+}
+
+function displayBox(box, color, fill) {
+  const rect = canvas.getBoundingClientRect();
+  const sx = rect.width / video.videoWidth;
+  const sy = rect.height / video.videoHeight;
+  const scale = devicePixelRatio;
+  const x = box[0] * sx * scale;
+  const y = box[1] * sy * scale;
+  const w = (box[2] - box[0]) * sx * scale;
+  const h = (box[3] - box[1]) * sy * scale;
+  ctx.fillStyle = fill;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2 * scale;
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeRect(x, y, w, h);
+}
+
+function getInterpolatedKeyframe(frame) {
+  const frames = Object.keys(window.manualKeyframes).map(Number).sort((a,b)=>a-b);
+  if (frames.length === 0) return null;
+  if (frames.includes(frame)) return window.manualKeyframes[frame];
+  
+  let segment = 0;
+  while (segment + 1 < frames.length && frames[segment + 1] < frame) segment++;
+  if (frame <= frames[0]) return window.manualKeyframes[frames[0]];
+  if (frame >= frames[frames.length - 1]) return window.manualKeyframes[frames[frames.length - 1]];
+  
+  const left = frames[segment];
+  const right = frames[segment + 1];
+  const ratio = (frame - left) / (right - left);
+  const boxL = window.manualKeyframes[left];
+  const boxR = window.manualKeyframes[right];
+  return [
+      boxL[0] * (1 - ratio) + boxR[0] * ratio,
+      boxL[1] * (1 - ratio) + boxR[1] * ratio,
+      boxL[2] * (1 - ratio) + boxR[2] * ratio,
+      boxL[3] * (1 - ratio) + boxR[3] * ratio,
+  ];
+}
+
+function drawOverlay() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if ($("mode").value === "keyframe") {
+    const frame = Math.round(video.currentTime * window.videoFps);
+    const box = getInterpolatedKeyframe(frame);
+    if (selection?.bbox && dragging) {
+        displayBox(selection.bbox, "#7be7c4", "rgba(123,231,196,.15)");
+    } else if (box) {
+        const isExact = window.manualKeyframes[frame] !== undefined;
+        const color = isExact ? "#ff6b79" : "#ffc107";
+        const fill = isExact ? "rgba(255,107,121,.18)" : "rgba(255,193,7,.18)";
+        displayBox(box, color, fill);
+    } else if (selection?.bbox) {
+        displayBox(selection.bbox, "#7be7c4", "rgba(123,231,196,.15)");
+    }
+  } else {
+    if (selection?.bbox) displayBox(selection.bbox, "#7be7c4", "rgba(123,231,196,.15)");
+    detectedBoxes.forEach(box => displayBox(box, "#ff6b79", "rgba(255,107,121,.18)"));
+  }
+}
+
+function renderKeyframeMarkers() {
+  const container = $("kfMarkers");
+  container.innerHTML = "";
+  if ($("mode").value !== "keyframe" || !video.duration) return;
+  const frames = Object.keys(window.manualKeyframes).map(Number);
+  frames.forEach(f => {
+      const time = f / window.videoFps;
+      const percent = (time / video.duration) * 100;
+      const dot = document.createElement("div");
+      dot.style.position = "absolute";
+      dot.style.left = `calc(${percent}% - 4px)`;
+      dot.style.top = "50%";
+      dot.style.transform = "translateY(-50%) rotate(45deg)";
+      dot.style.width = "8px";
+      dot.style.height = "8px";
+      dot.style.backgroundColor = "#ff6b79";
+      dot.style.border = "1px solid #fff";
+      container.appendChild(dot);
+  });
+}
+
+function updateKfButton() {
+  if ($("mode").value !== "keyframe") return;
+  const frame = Math.round(video.currentTime * window.videoFps);
+  const hasKf = window.manualKeyframes[frame] !== undefined;
+  const btn = $("toggleKf");
+  if (hasKf) {
+      btn.textContent = "♢ Xóa Keyframe này";
+      btn.style.color = "#ff6b79";
+  } else {
+      btn.textContent = "♦ Thêm Keyframe";
+      btn.style.color = "";
+  }
+}
+
+canvas.addEventListener("pointerdown", (event) => {
+  dragging = true;
+  start = point(event);
+  canvas.setPointerCapture(event.pointerId);
+});
+canvas.addEventListener("pointermove", (event) => {
+  if (!dragging) return;
+  const now = point(event);
+  const rect = canvas.getBoundingClientRect();
+  const sx = video.videoWidth / rect.width;
+  const sy = video.videoHeight / rect.height;
+  selection = {
+    bbox: [
+      Math.round(Math.min(start.x, now.x) * sx),
+      Math.round(Math.min(start.y, now.y) * sy),
+      Math.round(Math.max(start.x, now.x) * sx),
+      Math.round(Math.max(start.y, now.y) * sy),
+    ],
+  };
+  detectedBoxes = [];
+  drawOverlay();
+});
+canvas.addEventListener("pointerup", () => {
+  dragging = false;
+  if (!selection?.bbox) return;
+  const [x1, y1, x2, y2] = selection.bbox;
+  if (x2 - x1 < 4 || y2 - y1 < 4) return;
+  $("bbox").textContent = selection.bbox.join(", ");
+  $("process").disabled = false;
+  $("previewDetect").disabled = false;
+});
+
+$("mode").addEventListener("change", () => {
+  const mode = $("mode").value;
+  $("autoSettings").classList.toggle("hidden", mode !== "auto");
+  $("keyframeSettings").classList.toggle("hidden", mode !== "keyframe");
+  
+  if (mode === "auto") $("bboxLabel").textContent = "ROI tìm kiếm logo";
+  else if (mode === "fixed") $("bboxLabel").textContent = "Vùng mask cố định";
+  else $("bboxLabel").textContent = "Kéo mask và lưu Keyframe";
+
+  detectedBoxes = [];
+  updateKfButton();
+  renderKeyframeMarkers();
+  drawOverlay();
+});
+
+$("toggleKf").addEventListener("click", () => {
+  const frame = Math.round(video.currentTime * window.videoFps);
+  if (window.manualKeyframes[frame]) {
+      delete window.manualKeyframes[frame];
+  } else {
+      if (!selection?.bbox) {
+          const interp = getInterpolatedKeyframe(frame);
+          if (interp) window.manualKeyframes[frame] = interp;
+          else return alert("Vui lòng khoanh vùng mặt nạ trước khi lưu Keyframe!");
+      } else {
+          window.manualKeyframes[frame] = selection.bbox;
+      }
+  }
+  updateKfButton();
+  renderKeyframeMarkers();
+  drawOverlay();
+  $("process").disabled = false;
+});
+
+$("clearKf").addEventListener("click", () => {
+  window.manualKeyframes = {};
+  updateKfButton();
+  renderKeyframeMarkers();
+  drawOverlay();
+});
+
+$("useCurrent").addEventListener("click", () => {
+  $("startTime").value = video.currentTime.toFixed(2);
+});
+
+$("previewDetect").addEventListener("click", async () => {
+  if (!selection?.bbox || !uploadId) return;
+  $("previewDetect").disabled = true;
+  $("previewDetect").textContent = "Đang detect...";
+  const response = await fetch("/api/detect-preview", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      upload_id: uploadId,
+      time: video.currentTime,
+      bbox: selection.bbox,
+      detection_prompt: $("prompt").value,
+    }),
+  });
+  const data = await response.json();
+  $("previewDetect").disabled = false;
+  $("previewDetect").textContent = "Detect thử frame hiện tại";
+  if (!response.ok) return alert(data.detail || "Detect lỗi");
+  detectedBoxes = data.boxes;
+  drawOverlay();
+  if (!detectedBoxes.length) alert("Không detect được logo trong ROI tại frame này.");
+});
+
+$("process").addEventListener("click", async () => {
+  if (!uploadId) return;
+  if ($("mode").value === "keyframe") {
+    if (Object.keys(window.manualKeyframes).length === 0) return alert("Vui lòng thêm ít nhất 1 Keyframe!");
+  } else {
+    if (!selection?.bbox) return;
+  }
+  $("process").disabled = true;
+  $("progressPanel").classList.remove("hidden");
+  $("download").classList.add("hidden");
+  const response = await fetch("/api/process", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      upload_id: uploadId,
+      start_time: Number($("startTime").value || 0),
+      bbox: selection?.bbox || [0,0,10,10],
+      keyframes: $("mode").value === "keyframe" ? window.manualKeyframes : null,
+      mode: $("mode").value,
+      detection_prompt: $("prompt").value,
+      detection_interval: Number($("interval").value || 10),
+      mask_padding: Number($("padding").value || 0),
+      quality: $("quality").value,
+      model_name: $("inpaintModel").value,
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    $("process").disabled = false;
+    return alert(data.detail || "Không thể bắt đầu");
+  }
+  poll(data.job_id);
+});
+
+async function poll(jobId) {
+  const response = await fetch(`/api/jobs/${jobId}`);
+  const job = await response.json();
+  $("status").textContent = job.message || job.status;
+  $("percent").textContent = `${job.progress || 0}%`;
+  $("progress").value = job.progress || 0;
+  $("detectionStats").textContent = job.detection_samples
+    ? `Detect thành công tại ${job.detections}/${job.detection_samples} mốc; các frame còn lại được nội suy.`
+    : "";
+  if (job.status === "done") {
+    $("download").href = job.download_url;
+    $("download").classList.remove("hidden");
+    $("process").disabled = false;
+    return;
+  }
+  if (job.status === "error") {
+    $("process").disabled = false;
+    return;
+  }
+  setTimeout(() => poll(jobId), 700);
+}
