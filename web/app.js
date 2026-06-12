@@ -428,7 +428,7 @@ async function poll(jobId) {
       if ($("resultPreview")) $("resultPreview").classList.remove("hidden");
       if ($("resultViewer")) $("resultViewer").classList.remove("hidden");
       if ($("finalVideo")) {
-          $("finalVideo").src = `/api/work/${jobId}/result.mp4`;
+          $("finalVideo").src = `/api/work/${jobId}/result.mp4?t=` + Date.now();
           $("finalVideo").load();
       }
       $("process").disabled = false;
@@ -470,7 +470,7 @@ async function showHistory() {
             if (item.result_url) {
                 if ($("resultViewer")) $("resultViewer").classList.remove("hidden");
                 if ($("finalVideo")) {
-                    $("finalVideo").src = item.result_url;
+                    $("finalVideo").src = item.result_url + "?t=" + Date.now();
                     $("finalVideo").load();
                 }
                 if ($("download")) $("download").href = item.result_url;
