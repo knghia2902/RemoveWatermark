@@ -31,12 +31,12 @@ function loadWorkspace(id, video_url, fps) {
   video.src = video_url;
   
   if ($("viewerUploadOverlay")) $("viewerUploadOverlay").classList.add("hidden");
-  if ($("originalVideoLabel")) $("originalVideoLabel").classList.remove("hidden");
   if ($("originalFullscreenBtn")) $("originalFullscreenBtn").classList.remove("hidden");
   if ($("resultViewer")) $("resultViewer").classList.add("hidden");
   if ($("progressPanel")) $("progressPanel").classList.add("hidden");
   if ($("process")) $("process").disabled = false;
-  if ($("playPause")) $("playPause").textContent = "▶";
+  if ($("playIcon")) $("playIcon").style.display = "block";
+  if ($("pauseIcon")) $("pauseIcon").style.display = "none";
   if ($("status")) $("status").textContent = "Đang xử lý...";
   if ($("percent")) $("percent").textContent = "0%";
   if ($("progress")) $("progress").value = 0;
