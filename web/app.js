@@ -52,11 +52,22 @@ if ($("viewerUpload")) {
 }
 
 function resizeCanvas() {
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  if (!vw || !vh) return;
   const rect = video.getBoundingClientRect();
-  canvas.width = Math.round(rect.width * devicePixelRatio);
-  canvas.height = Math.round(rect.height * devicePixelRatio);
-  canvas.style.width = `${rect.width}px`;
-  canvas.style.height = `${rect.height}px`;
+  const scale = Math.min(rect.width / vw, rect.height / vh);
+  const width = vw * scale;
+  const height = vh * scale;
+  
+  canvas.width = Math.round(width * devicePixelRatio);
+  canvas.height = Math.round(height * devicePixelRatio);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  
+  canvas.style.left = `${(rect.width - width) / 2}px`;
+  canvas.style.top = `${(rect.height - height) / 2}px`;
+  
   drawOverlay();
 }
 
@@ -89,6 +100,11 @@ video.addEventListener("timeupdate", () => {
   if ($("mode").value === "keyframe") {
       updateKfButton();
       drawOverlay();
+  }
+  if ($("finalVideo") && !$("resultViewer").classList.contains("hidden")) {
+      if (Math.abs($("finalVideo").currentTime - video.currentTime) > 0.3) {
+          $("finalVideo").currentTime = video.currentTime;
+      }
   }
 });
 $("playPause").addEventListener("click", () => {
