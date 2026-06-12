@@ -54,7 +54,8 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 class ProcessRequest(BaseModel):
     upload_id: str
     start_time: float
-    bbox: list[int] = None
+    end_time: Optional[float] = None
+    bbox: List[int] = None
     keyframes: dict = None
     mode: str = "fixed"
     detection_prompt: str = "small watermark logo"
@@ -296,8 +297,11 @@ def process_job(job_id, source, output, request):
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        start_frame = max(0, min(total, round(request.start_time * fps)))
-        start_frame = max(0, min(total, round(request.start_time * fps)))
+        start_frame = max(0, min(total - 1, round(request.start_time * fps)))
+        end_frame = total
+        if request.end_time is not None:
+            end_frame = max(start_frame + 1, min(total, round(request.end_time * fps)))
+        total = end_frame
         interval = max(1, min(60, request.detection_interval))
         padding = max(0, min(100, request.mask_padding))
         quality_presets = {
@@ -333,17 +337,23 @@ def process_job(job_id, source, output, request):
                 progress=base_progress,
                 message="Đang khởi động single-pass H.264 encoder...",
             )
+            audio_opts = ["-ss", str(request.start_time)]
+            if request.end_time is not None:
+                audio_opts.extend(["-t", str(request.end_time - request.start_time)])
+            audio_opts.extend(["-i", str(source)])
+            
             encoder = subprocess.Popen(
                 [
                     "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
                     "-f", "rawvideo", "-pix_fmt", "bgr24",
                     "-s:v", f"{width}x{height}", "-r", f"{fps:.12f}",
-                    "-i", "pipe:0", "-i", str(source),
+                    "-i", "pipe:0", *audio_opts,
                     "-map", "0:v:0", "-map", "1:a:0?",
                     "-c:v", "libx264", "-g", "15", *encode_options,
                     "-pix_fmt", "yuv420p",
                     "-colorspace", "bt709", "-color_primaries", "bt709",
                     "-color_trc", "bt709",
+                    "-vframes", str(total - start_frame),
                     "-c:a", "copy", "-shortest", "-movflags", "+faststart",
                     str(output),
                 ],

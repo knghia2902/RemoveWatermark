@@ -354,6 +354,17 @@ $("clearKf").addEventListener("click", () => {
   drawOverlay();
 });
 
+if ($("useCurrentStart")) {
+  $("useCurrentStart").addEventListener("click", () => {
+    $("startTime").value = video.currentTime.toFixed(2);
+  });
+}
+if ($("useCurrentEnd")) {
+  $("useCurrentEnd").addEventListener("click", () => {
+    $("endTime").value = video.currentTime.toFixed(2);
+  });
+}
+
 $("useCurrent").addEventListener("click", () => {
   $("startTime").value = video.currentTime.toFixed(2);
 });
@@ -392,17 +403,24 @@ $("process").addEventListener("click", async () => {
   $("progressPanel").classList.remove("hidden");
   if ($("resultPreview")) $("resultPreview").classList.add("hidden");
   if ($("resultViewer")) $("resultViewer").classList.add("hidden");
+  
+  const startTime = Number($("startTime").value);
+  const endVal = $("endTime").value;
+  const endTime = endVal ? Number(endVal) : null;
+  const detectionInterval = Number($("interval") ? $("interval").value : 5);
+  
   const response = await fetch("/api/process", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       upload_id: uploadId,
-      start_time: Number($("startTime").value || 0),
+      start_time: startTime,
+      end_time: endTime,
       bbox: selection?.bbox || [0,0,10,10],
       keyframes: $("mode").value === "keyframe" ? window.manualKeyframes : {},
       mode: $("mode").value,
       detection_prompt: $("prompt").value,
-      detection_interval: Number($("interval").value || 10),
+      detection_interval: detectionInterval,
       mask_padding: Number($("padding").value || 0),
       quality: $("quality").value,
       model_name: $("inpaintModel").value,
