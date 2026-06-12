@@ -31,6 +31,7 @@ function loadWorkspace(id, video_url, fps) {
   video.src = video_url;
   
   if ($("viewerUploadOverlay")) $("viewerUploadOverlay").classList.add("hidden");
+  if ($("originalVideoLabel")) $("originalVideoLabel").classList.remove("hidden");
   if ($("resultViewer")) $("resultViewer").classList.add("hidden");
   if ($("progressPanel")) $("progressPanel").classList.add("hidden");
   if ($("process")) $("process").disabled = false;
