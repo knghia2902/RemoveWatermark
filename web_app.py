@@ -541,8 +541,8 @@ def start_process(request: ProcessRequest, background_tasks: BackgroundTasks):
     source = source_for(request.upload_id)
     if request.mode not in {"fixed", "auto", "keyframe"}:
         raise HTTPException(400, "Mode không hợp lệ.")
-    job_id = uuid.uuid4().hex
-    output = source.parent / f"{request.mode}_result_{job_id}.mp4"
+    job_id = request.upload_id
+    output = source.parent / "result.mp4"
     update_job(job_id, status="queued", progress=0, message="Đang xếp hàng...", output=str(output))
     background_tasks.add_task(process_job, job_id, source, output, request)
     return {"job_id": job_id}
