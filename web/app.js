@@ -74,9 +74,17 @@ function resizeCanvas() {
 
 video.addEventListener("loadedmetadata", () => {
   resizeCanvas();
-  $("seek").max = video.duration;
+  if (isFinite(video.duration)) {
+      $("seek").max = video.duration;
+  }
   renderKeyframeMarkers();
 });
+video.addEventListener("durationchange", () => {
+  if (isFinite(video.duration)) {
+      $("seek").max = video.duration;
+  }
+});
+
 let isSeeking = false;
 $("seek").addEventListener("mousedown", () => isSeeking = true);
 $("seek").addEventListener("touchstart", () => isSeeking = true);
@@ -84,9 +92,10 @@ $("seek").addEventListener("mouseup", () => isSeeking = false);
 $("seek").addEventListener("touchend", () => isSeeking = false);
 
 $("seek").addEventListener("input", () => {
-  video.currentTime = Number($("seek").value);
+  const targetTime = Number($("seek").value);
+  video.currentTime = targetTime;
   if ($("finalVideo") && !$("resultViewer").classList.contains("hidden")) {
-      $("finalVideo").currentTime = video.currentTime;
+      $("finalVideo").currentTime = targetTime;
   }
   detectedBoxes = [];
   updateKfButton();
