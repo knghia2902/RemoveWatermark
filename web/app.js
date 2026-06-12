@@ -30,15 +30,23 @@ function loadWorkspace(id, video_url, fps) {
   window.manualKeyframes = {};
   video.src = video_url;
   
-  if ($("initialUpload")) $("initialUpload").classList.add("hidden");
-  if ($("mainWorkspace")) $("mainWorkspace").classList.remove("hidden");
+  if ($("viewerUploadOverlay")) $("viewerUploadOverlay").classList.add("hidden");
   if ($("resultViewer")) $("resultViewer").classList.add("hidden");
   if ($("progressPanel")) $("progressPanel").classList.add("hidden");
   if ($("process")) $("process").disabled = false;
+  if ($("playPause")) $("playPause").textContent = "▶";
+  if ($("status")) $("status").textContent = "Đang xử lý...";
+  if ($("percent")) $("percent").textContent = "0%";
+  if ($("progress")) $("progress").value = 0;
 }
 
-if ($("welcomeUpload")) $("welcomeUpload").addEventListener("change", (e) => handleFileUpload(e.target.files[0]));
-if ($("videoUpload")) $("videoUpload").addEventListener("change", (e) => handleFileUpload(e.target.files[0]));
+if ($("viewerUpload")) {
+    $("viewerUpload").addEventListener("change", (e) => {
+        const overlayText = $("viewerUploadOverlay").querySelectorAll("span")[1];
+        if (overlayText) overlayText.textContent = "⏳ Đang tải lên...";
+        handleFileUpload(e.target.files[0]);
+    });
+}
 
 function resizeCanvas() {
   const rect = video.getBoundingClientRect();
@@ -368,7 +376,8 @@ async function poll(jobId) {
 async function showHistory() {
     const res = await fetch("/api/history");
     const data = await res.json();
-    const list = $("historyList");
+    const list = $("historyListColumn");
+    if (!list) return;
     list.innerHTML = "";
     if (data.history.length === 0) {
         list.innerHTML = "<p style='color: #888;'>Chưa có video nào trong lịch sử.</p>";
@@ -395,13 +404,10 @@ async function showHistory() {
                 if ($("progress")) $("progress").value = 100;
                 if ($("percent")) $("percent").textContent = "100%";
             }
-            $("historyModal").classList.add("hidden");
         });
         list.appendChild(div);
     });
-    $("historyModal").classList.remove("hidden");
 }
 
-if ($("btnWelcomeHistory")) $("btnWelcomeHistory").addEventListener("click", showHistory);
-if ($("btnSidebarHistory")) $("btnSidebarHistory").addEventListener("click", showHistory);
-if ($("closeHistory")) $("closeHistory").addEventListener("click", () => $("historyModal").classList.add("hidden"));
+// Gọi API Lịch sử ngay khi tải trang
+showHistory();
