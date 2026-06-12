@@ -426,6 +426,15 @@ def system():
 # Mount WORK_DIR directly to enable flawless Range request seeking for videos
 app.mount("/api/work", StaticFiles(directory=WORK_DIR), name="work")
 
+@app.delete("/api/history/{job_id}")
+def delete_history(job_id: str):
+    job_dir = WORK_DIR / job_id
+    if job_dir.exists() and job_dir.is_dir():
+        import shutil
+        shutil.rmtree(job_dir)
+        return {"status": "ok"}
+    return {"status": "not_found"}
+
 @app.get("/api/history")
 def get_history():
     history = []

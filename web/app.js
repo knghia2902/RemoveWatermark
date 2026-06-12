@@ -394,9 +394,12 @@ async function showHistory() {
                 <strong style="color: #7be7c4; font-size: 14px;">Video ${item.id.slice(0,6)}</strong>
                 <div style="font-size: 12px; color: #888; margin-top: 4px;">${date}</div>
             </div>
-            <button style="padding: 6px 12px; font-size: 13px; background: #333; color: #fff; border: 1px solid #555; border-radius: 6px; cursor: pointer;">Mở lại</button>
+            <div style="display: flex; gap: 6px;">
+                <button class="btn-open" style="padding: 6px 10px; font-size: 13px; background: #333; color: #fff; border: 1px solid #555; border-radius: 6px; cursor: pointer;">Mở</button>
+                <button class="btn-del" style="padding: 6px 10px; font-size: 13px; background: #5a2a2a; color: #fff; border: 1px solid #773333; border-radius: 6px; cursor: pointer;">Xóa</button>
+            </div>
         `;
-        div.querySelector("button").addEventListener("click", () => {
+        div.querySelector(".btn-open").addEventListener("click", () => {
             loadWorkspace(item.id, item.source_url, 30);
             if (item.result_url) {
                 if ($("finalVideo")) $("finalVideo").src = item.result_url;
@@ -407,6 +410,11 @@ async function showHistory() {
                 if ($("progress")) $("progress").value = 100;
                 if ($("percent")) $("percent").textContent = "100%";
             }
+        });
+        div.querySelector(".btn-del").addEventListener("click", async () => {
+            if (!confirm("Bạn có chắc chắn muốn xóa vĩnh viễn video này khỏi ổ cứng?")) return;
+            const res = await fetch(`/api/history/${item.id}`, { method: "DELETE" });
+            if (res.ok) showHistory();
         });
         list.appendChild(div);
     });
