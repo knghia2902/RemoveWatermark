@@ -1,6 +1,4 @@
 const $ = (id) => document.getElementById(id);
-const file = $("file");
-const upload = $("upload");
 const video = $("video");
 const canvas = $("overlay");
 const ctx = canvas.getContext("2d");
@@ -11,33 +9,36 @@ let dragging = false;
 let start = null;
 
 fetch("/api/system").then(r => r.json()).then(data => {
-  $("device").textContent = data.device === "cuda" ? `GPU: ${data.gpu}` : "CPU mode";
+  if ($("device")) $("device").textContent = data.device === "cuda" ? `GPU: ${data.gpu}` : "CPU mode";
 });
 
-file.addEventListener("change", () => {
-  $("fileName").textContent = file.files[0]?.name || "Chưa chọn file";
-});
-
-upload.addEventListener("click", async () => {
-  if (!file.files[0]) return;
-  upload.disabled = true;
-  upload.textContent = "Đang upload...";
+async function handleFileUpload(fileObj) {
+  if (!fileObj) return;
   const form = new FormData();
-  form.append("file", file.files[0]);
+  form.append("file", fileObj);
   const response = await fetch("/api/upload", { method: "POST", body: form });
   const data = await response.json();
-  upload.disabled = false;
-  upload.textContent = "Tải video lên local app";
   if (!response.ok) return alert(data.detail || "Upload lỗi");
-  uploadId = data.upload_id;
-  window.videoFps = data.fps || 30;
+  loadWorkspace(data.upload_id, data.video_url, data.fps || 30);
+}
+
+function loadWorkspace(id, video_url, fps) {
+  uploadId = id;
+  window.videoFps = fps;
   selection = null;
   detectedBoxes = [];
   window.manualKeyframes = {};
-  video.src = data.video_url;
+  video.src = video_url;
+  
   if ($("initialUpload")) $("initialUpload").classList.add("hidden");
   if ($("mainWorkspace")) $("mainWorkspace").classList.remove("hidden");
-});
+  if ($("resultViewer")) $("resultViewer").classList.add("hidden");
+  if ($("progressPanel")) $("progressPanel").classList.add("hidden");
+  if ($("process")) $("process").disabled = false;
+}
+
+if ($("welcomeUpload")) $("welcomeUpload").addEventListener("change", (e) => handleFileUpload(e.target.files[0]));
+if ($("videoUpload")) $("videoUpload").addEventListener("change", (e) => handleFileUpload(e.target.files[0]));
 
 function resizeCanvas() {
   const rect = video.getBoundingClientRect();
@@ -363,3 +364,44 @@ async function poll(jobId) {
   }
   setTimeout(() => poll(jobId), 700);
 }
+
+async function showHistory() {
+    const res = await fetch("/api/history");
+    const data = await res.json();
+    const list = $("historyList");
+    list.innerHTML = "";
+    if (data.history.length === 0) {
+        list.innerHTML = "<p style='color: #888;'>Chưa có video nào trong lịch sử.</p>";
+    }
+    data.history.forEach(item => {
+        const div = document.createElement("div");
+        div.style.cssText = "display: flex; justify-content: space-between; background: #222; padding: 12px; border-radius: 8px; align-items: center;";
+        const date = new Date(item.created * 1000).toLocaleString("vi-VN");
+        div.innerHTML = `
+            <div>
+                <strong style="color: #7be7c4; font-size: 14px;">Video ${item.id.slice(0,6)}</strong>
+                <div style="font-size: 12px; color: #888; margin-top: 4px;">${date}</div>
+            </div>
+            <button style="padding: 6px 12px; font-size: 13px; background: #333; color: #fff; border: 1px solid #555; border-radius: 6px; cursor: pointer;">Mở lại</button>
+        `;
+        div.querySelector("button").addEventListener("click", () => {
+            loadWorkspace(item.id, item.source_url, 30);
+            if (item.result_url) {
+                if ($("finalVideo")) $("finalVideo").src = item.result_url;
+                if ($("resultViewer")) $("resultViewer").classList.remove("hidden");
+                if ($("download")) $("download").href = item.result_url;
+                if ($("progressPanel")) $("progressPanel").classList.remove("hidden");
+                if ($("status")) $("status").textContent = "Hoàn tất (Từ Lịch sử)!";
+                if ($("progress")) $("progress").value = 100;
+                if ($("percent")) $("percent").textContent = "100%";
+            }
+            $("historyModal").classList.add("hidden");
+        });
+        list.appendChild(div);
+    });
+    $("historyModal").classList.remove("hidden");
+}
+
+if ($("btnWelcomeHistory")) $("btnWelcomeHistory").addEventListener("click", showHistory);
+if ($("btnSidebarHistory")) $("btnSidebarHistory").addEventListener("click", showHistory);
+if ($("closeHistory")) $("closeHistory").addEventListener("click", () => $("historyModal").classList.add("hidden"));

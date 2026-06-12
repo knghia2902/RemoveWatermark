@@ -18,20 +18,27 @@
     </header>
 
     <section id="initialUpload" class="panel upload-panel" style="max-width: 480px; margin: 80px auto; display: flex; flex-direction: column; align-items: stretch; gap: 16px;">
-      <h2 style="margin: 0; text-align: center; font-size: 1.25em; color: #eef2f8;">Bắt đầu với một Video</h2>
-      <p style="margin: 0; text-align: center; color: #91a0b2; font-size: 0.95em;">Chọn video từ máy tính của bạn để tiến hành xóa watermark</p>
-      <label class="file-picker" style="width: 100%; margin-top: 8px;">
-        <input id="file" type="file" accept="video/*">
-        <span style="width: 100%; padding: 14px;">Chọn video từ máy...</span>
-      </label>
-      <span id="fileName" style="text-align: center; font-size: 13px; color: #91a0b2;">Chưa chọn file</span>
-      <button id="upload" style="width: 100%; padding: 14px;">Tải lên hệ thống</button>
+      <h2 style="color: #7be7c4; font-size: 24px; margin-bottom: 8px;">Bắt đầu xóa Watermark</h2>
+      <p style="color: #aaa; margin-bottom: 24px;">Chọn một video từ máy tính của bạn hoặc xem lại Lịch sử.</p>
+      <div style="display: flex; gap: 12px;">
+        <label class="file-input-btn" style="display: inline-block;">
+          Tải Video Lên
+          <input type="file" id="welcomeUpload" accept="video/*" style="display: none;">
+        </label>
+        <button id="btnWelcomeHistory" style="background: #333; padding: 10px 24px;">Lịch sử</button>
+      </div>
     </section>
 
     <div id="mainWorkspace" class="app-layout hidden">
       <div class="sidebar">
         <section class="panel controls-panel" style="margin-top: 0;">
-          <div style="display: flex; flex-direction: column; gap: 16px;">
+          <label class="file-input-btn">
+            Tải Video Mới Lên
+            <input type="file" id="videoUpload" accept="video/*" style="display: none;" />
+          </label>
+          <button id="btnSidebarHistory" style="margin-top: 8px; width: 100%; background: #333;">Mở Lịch sử</button>
+          
+          <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 24px;">
             <div>
               <label>Chế độ xử lý</label>
               <select id="mode">
@@ -159,6 +166,17 @@
       </div>
     </div>
   </main>
-  <script src="/static/app.js?v=12"></script>
+
+  <div id="historyModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+    <div class="panel" style="width: 600px; max-width: 90%; max-height: 80vh; overflow-y: auto; display: flex; flex-direction: column;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 12px; margin-bottom: 16px;">
+        <h2 style="margin: 0; font-size: 18px;">Lịch sử Video đã tải lên</h2>
+        <button id="closeHistory" style="background: transparent; padding: 0; color: #fff; font-size: 20px;">×</button>
+      </div>
+      <div id="historyList" style="display: flex; flex-direction: column; gap: 12px;"></div>
+    </div>
+  </div>
+
+  <script src="/static/app.js?v=13"></script>
 </body>
 </html>

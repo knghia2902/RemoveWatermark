@@ -426,6 +426,23 @@ def system():
 # Mount WORK_DIR directly to enable flawless Range request seeking for videos
 app.mount("/api/work", StaticFiles(directory=WORK_DIR), name="work")
 
+@app.get("/api/history")
+def get_history():
+    history = []
+    for d in WORK_DIR.iterdir():
+        if d.is_dir() and len(d.name) == 32:
+            source_file = next(d.glob("source.*"), None)
+            if source_file:
+                result_file = d / "result.mp4"
+                history.append({
+                    "id": d.name,
+                    "created": d.stat().st_ctime,
+                    "source_url": f"/api/work/{d.name}/{source_file.name}",
+                    "result_url": f"/api/work/{d.name}/result.mp4" if result_file.exists() else None
+                })
+    history.sort(key=lambda x: x["created"], reverse=True)
+    return {"history": history}
+
 @app.post("/api/upload")
 async def upload_video(file: UploadFile = File(...)):
     suffix = Path(file.filename or "").suffix.lower()
