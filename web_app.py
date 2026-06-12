@@ -427,6 +427,7 @@ def system():
 app.mount("/api/work", StaticFiles(directory=WORK_DIR), name="work")
 
 @app.delete("/api/history/{job_id}")
+def delete_history(job_id: str):
     job_dir = WORK_DIR / job_id
     if job_dir.exists() and job_dir.is_dir():
         import shutil
