@@ -144,6 +144,15 @@ function toggleFullscreen(elementId) {
     }
 }
 
+if ($("finalVideo")) {
+    $("finalVideo").addEventListener("loadeddata", () => {
+        $("finalVideo").currentTime = video.currentTime;
+        if (!video.paused) {
+            $("finalVideo").play();
+        }
+    });
+}
+
 if ($("originalViewer")) {
   $("originalViewer").addEventListener("dblclick", () => {
     toggleFullscreen("originalViewer");
@@ -407,9 +416,12 @@ async function poll(jobId) {
       $("progress").value = 100;
       $("percent").textContent = "100%";
       $("download").href = job.download_url;
-      if ($("finalVideo")) $("finalVideo").src = `/api/work/${jobId}/result.mp4`;
       if ($("resultPreview")) $("resultPreview").classList.remove("hidden");
       if ($("resultViewer")) $("resultViewer").classList.remove("hidden");
+      if ($("finalVideo")) {
+          $("finalVideo").src = `/api/work/${jobId}/result.mp4`;
+          $("finalVideo").load();
+      }
       $("process").disabled = false;
       return;
     }
@@ -447,8 +459,11 @@ async function showHistory() {
             if ($("historyModal")) $("historyModal").classList.add("hidden");
             loadWorkspace(item.id, item.source_url, 30);
             if (item.result_url) {
-                if ($("finalVideo")) $("finalVideo").src = item.result_url;
                 if ($("resultViewer")) $("resultViewer").classList.remove("hidden");
+                if ($("finalVideo")) {
+                    $("finalVideo").src = item.result_url;
+                    $("finalVideo").load();
+                }
                 if ($("download")) $("download").href = item.result_url;
                 if ($("progressPanel")) $("progressPanel").classList.remove("hidden");
                 if ($("status")) $("status").textContent = "Hoàn tất (Từ Lịch sử)!";
