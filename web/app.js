@@ -305,7 +305,7 @@ $("process").addEventListener("click", async () => {
       upload_id: uploadId,
       start_time: Number($("startTime").value || 0),
       bbox: selection?.bbox || [0,0,10,10],
-      keyframes: $("mode").value === "keyframe" ? window.manualKeyframes : null,
+      keyframes: $("mode").value === "keyframe" ? window.manualKeyframes : {},
       mode: $("mode").value,
       detection_prompt: $("prompt").value,
       detection_interval: Number($("interval").value || 10),

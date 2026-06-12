@@ -33,7 +33,12 @@ WEB_DIR = ROOT / "web"
 WORK_DIR = ROOT / "web_jobs"
 WORK_DIR.mkdir(exist_ok=True)
 
-app = FastAPI(title="AI Video Watermark Remover")
+app = FastAPI(title="Watermark Remover AI Web API")
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    from fastapi.responses import Response
+    return Response(status_code=204)
 app.mount("/static", StaticFiles(directory=WEB_DIR), name="static")
 
 jobs = {}
