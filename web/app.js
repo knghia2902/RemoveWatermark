@@ -42,8 +42,11 @@ function loadWorkspace(id, video_url, fps) {
 
 if ($("viewerUpload")) {
     $("viewerUpload").addEventListener("change", (e) => {
-        const overlayText = $("viewerUploadOverlay").querySelectorAll("span")[1];
-        if (overlayText) overlayText.textContent = "⏳ Đang tải lên...";
+        const overlayText = $("viewerUploadOverlay").querySelector("span");
+        if (overlayText) {
+            overlayText.textContent = "LOADING...";
+            overlayText.style.color = "rgba(123, 231, 196, 0.5)";
+        }
         handleFileUpload(e.target.files[0]);
     });
 }
