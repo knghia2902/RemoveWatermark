@@ -56,12 +56,11 @@ class ProcessRequest(BaseModel):
     start_time: float
     end_time: Optional[float] = None
     bbox: List[int] = None
-    keyframes: dict = None
     mode: str = "fixed"
     detection_prompt: str = "small watermark logo"
     detection_interval: int = 10
     mask_padding: int = 12
-    quality: str = "high"
+    quality: str = "standard"
     model_name: str = "lama"
 
 
@@ -313,21 +312,13 @@ def process_job(job_id, source, output, request):
         encode_options = quality_presets.get(request.quality, quality_presets["high"])
 
         with processing_lock:
+            selected_bbox = validate_bbox(request.bbox, width, height)
             if request.mode == "auto":
-                selected_bbox = validate_bbox(request.bbox, width, height)
                 frame_boxes = detect_moving_boxes(
                     job_id, cap, start_frame, total, selected_bbox, request.detection_prompt, interval
                 )
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
                 base_progress = 35
-            elif request.mode == "keyframe":
-                if not request.keyframes:
-                    raise RuntimeError("Cần ít nhất 1 keyframe.")
-                kfs = {int(k): validate_bbox(v, width, height) for k, v in request.keyframes.items()}
-                frame_boxes = interpolate_boxes(kfs, start_frame, total)
-                base_progress = 0
             else:
-                selected_bbox = validate_bbox(request.bbox, width, height)
                 frame_boxes = {frame: selected_bbox for frame in range(start_frame, total)}
                 base_progress = 0
 

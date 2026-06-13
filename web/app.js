@@ -27,7 +27,6 @@ function loadWorkspace(id, video_url, fps) {
   window.videoFps = fps;
   selection = null;
   detectedBoxes = [];
-  window.manualKeyframes = {};
   video.src = video_url;
   
   if ($("viewerUploadOverlay")) $("viewerUploadOverlay").classList.add("hidden");
@@ -77,7 +76,6 @@ video.addEventListener("loadedmetadata", () => {
   if (isFinite(video.duration)) {
       $("seek").max = video.duration;
   }
-  renderKeyframeMarkers();
 });
 video.addEventListener("durationchange", () => {
   if (isFinite(video.duration)) {
@@ -98,7 +96,6 @@ $("seek").addEventListener("input", () => {
       $("finalVideo").currentTime = targetTime;
   }
   detectedBoxes = [];
-  updateKfButton();
   drawOverlay();
 });
 
@@ -116,10 +113,6 @@ video.addEventListener("timeupdate", () => {
     $("seek").value = video.currentTime;
   }
   $("currentTime").textContent = `${video.currentTime.toFixed(2)}s`;
-  if ($("mode").value === "keyframe") {
-      updateKfButton();
-      drawOverlay();
-  }
   if ($("finalVideo") && !$("resultViewer").classList.contains("hidden")) {
       if (!isSeeking && $("finalVideo").readyState >= 2 && Math.abs($("finalVideo").currentTime - video.currentTime) > 0.4) {
           $("finalVideo").currentTime = video.currentTime;
@@ -202,83 +195,10 @@ function displayBox(box, color, fill) {
   ctx.strokeRect(x, y, w, h);
 }
 
-function getInterpolatedKeyframe(frame) {
-  const frames = Object.keys(window.manualKeyframes).map(Number).sort((a,b)=>a-b);
-  if (frames.length === 0) return null;
-  if (frames.includes(frame)) return window.manualKeyframes[frame];
-  
-  let segment = 0;
-  while (segment + 1 < frames.length && frames[segment + 1] < frame) segment++;
-  if (frame <= frames[0]) return window.manualKeyframes[frames[0]];
-  if (frame >= frames[frames.length - 1]) return window.manualKeyframes[frames[frames.length - 1]];
-  
-  const left = frames[segment];
-  const right = frames[segment + 1];
-  const ratio = (frame - left) / (right - left);
-  const boxL = window.manualKeyframes[left];
-  const boxR = window.manualKeyframes[right];
-  return [
-      boxL[0] * (1 - ratio) + boxR[0] * ratio,
-      boxL[1] * (1 - ratio) + boxR[1] * ratio,
-      boxL[2] * (1 - ratio) + boxR[2] * ratio,
-      boxL[3] * (1 - ratio) + boxR[3] * ratio,
-  ];
-}
-
 function drawOverlay() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  if ($("mode").value === "keyframe") {
-    const frame = Math.round(video.currentTime * window.videoFps);
-    const box = getInterpolatedKeyframe(frame);
-    if (selection?.bbox && dragging) {
-        displayBox(selection.bbox, "#7be7c4", "rgba(123,231,196,.15)");
-    } else if (box) {
-        const isExact = window.manualKeyframes[frame] !== undefined;
-        const color = isExact ? "#ff6b79" : "#ffc107";
-        const fill = isExact ? "rgba(255,107,121,.18)" : "rgba(255,193,7,.18)";
-        displayBox(box, color, fill);
-    } else if (selection?.bbox) {
-        displayBox(selection.bbox, "#7be7c4", "rgba(123,231,196,.15)");
-    }
-  } else {
-    if (selection?.bbox) displayBox(selection.bbox, "#7be7c4", "rgba(123,231,196,.15)");
-    detectedBoxes.forEach(box => displayBox(box, "#ff6b79", "rgba(255,107,121,.18)"));
-  }
-}
-
-function renderKeyframeMarkers() {
-  const container = $("kfMarkers");
-  container.innerHTML = "";
-  if ($("mode").value !== "keyframe" || !video.duration) return;
-  const frames = Object.keys(window.manualKeyframes).map(Number);
-  frames.forEach(f => {
-      const time = f / window.videoFps;
-      const percent = (time / video.duration) * 100;
-      const dot = document.createElement("div");
-      dot.style.position = "absolute";
-      dot.style.left = `calc(${percent}% - 4px)`;
-      dot.style.top = "50%";
-      dot.style.transform = "translateY(-50%) rotate(45deg)";
-      dot.style.width = "8px";
-      dot.style.height = "8px";
-      dot.style.backgroundColor = "#ff6b79";
-      dot.style.border = "1px solid #fff";
-      container.appendChild(dot);
-  });
-}
-
-function updateKfButton() {
-  if ($("mode").value !== "keyframe") return;
-  const frame = Math.round(video.currentTime * window.videoFps);
-  const hasKf = window.manualKeyframes[frame] !== undefined;
-  const btn = $("toggleKf");
-  if (hasKf) {
-      btn.textContent = "♢ Xóa Keyframe này";
-      btn.style.color = "#ff6b79";
-  } else {
-      btn.textContent = "♦ Thêm Keyframe";
-      btn.style.color = "";
-  }
+  if (selection?.bbox) displayBox(selection.bbox, "#7be7c4", "rgba(123,231,196,.15)");
+  detectedBoxes.forEach(box => displayBox(box, "#ff6b79", "rgba(255,107,121,.18)"));
 }
 
 canvas.addEventListener("pointerdown", (event) => {
@@ -316,45 +236,13 @@ canvas.addEventListener("pointerup", () => {
 $("mode").addEventListener("change", () => {
   const mode = $("mode").value;
   $("autoSettings").classList.toggle("hidden", mode !== "auto");
-  $("keyframeSettings").classList.toggle("hidden", mode !== "keyframe");
   
   if (mode === "auto") $("bboxLabel").textContent = "ROI tìm kiếm logo";
   else if (mode === "fixed") $("bboxLabel").textContent = "Vùng mask cố định";
-  else $("bboxLabel").textContent = "Kéo mask và lưu Keyframe";
 
   detectedBoxes = [];
-  updateKfButton();
-  renderKeyframeMarkers();
   drawOverlay();
 });
-
-$("toggleKf").addEventListener("click", () => {
-  const frame = Math.round(video.currentTime * window.videoFps);
-  if (window.manualKeyframes[frame]) {
-      delete window.manualKeyframes[frame];
-  } else {
-      if (!selection?.bbox) {
-          const interp = getInterpolatedKeyframe(frame);
-          if (interp) window.manualKeyframes[frame] = interp;
-          else return alert("Vui lòng khoanh vùng mặt nạ trước khi lưu Keyframe!");
-      } else {
-          window.manualKeyframes[frame] = selection.bbox;
-      }
-  }
-  updateKfButton();
-  renderKeyframeMarkers();
-  drawOverlay();
-  $("process").disabled = false;
-});
-
-$("clearKf").addEventListener("click", () => {
-  window.manualKeyframes = {};
-  updateKfButton();
-  renderKeyframeMarkers();
-  drawOverlay();
-});
-
-
 
 $("previewDetect").addEventListener("click", async () => {
   if (!selection?.bbox || !uploadId) return;
@@ -381,11 +269,7 @@ $("previewDetect").addEventListener("click", async () => {
 
 $("process").addEventListener("click", async () => {
   if (!uploadId) return;
-  if ($("mode").value === "keyframe") {
-    if (Object.keys(window.manualKeyframes).length === 0) return alert("Vui lòng thêm ít nhất 1 Keyframe!");
-  } else {
-    if (!selection?.bbox) return;
-  }
+  if (!selection?.bbox) return;
   $("process").disabled = true;
   $("progressPanel").classList.remove("hidden");
   if ($("resultPreview")) $("resultPreview").classList.add("hidden");
@@ -403,8 +287,7 @@ $("process").addEventListener("click", async () => {
       upload_id: uploadId,
       start_time: startTime,
       end_time: endTime,
-      bbox: selection?.bbox || [0,0,10,10],
-      keyframes: $("mode").value === "keyframe" ? window.manualKeyframes : {},
+      bbox: selection.bbox,
       mode: $("mode").value,
       detection_prompt: $("prompt").value,
       detection_interval: detectionInterval,
@@ -448,56 +331,5 @@ async function poll(jobId) {
     $("process").disabled = false;
     return;
   }
-  setTimeout(() => poll(jobId), 700);
+  setTimeout(() => poll(jobId), 1000);
 }
-
-async function showHistory() {
-    const res = await fetch("/api/history");
-    const data = await res.json();
-    const list = $("historyListColumn");
-    if (!list) return;
-    list.innerHTML = "";
-    if (data.history.length === 0) {
-        list.innerHTML = "<p style='color: #888;'>Chưa có video nào trong lịch sử.</p>";
-    }
-    data.history.forEach(item => {
-        const div = document.createElement("div");
-        div.style.cssText = "display: flex; justify-content: space-between; background: #222; padding: 12px; border-radius: 8px; align-items: center;";
-        const date = new Date(item.created * 1000).toLocaleString("vi-VN");
-        div.innerHTML = `
-            <div>
-                <strong style="color: #7be7c4; font-size: 14px;">Video ${item.id.slice(0,6)}</strong>
-                <div style="font-size: 12px; color: #888; margin-top: 4px;">${date}</div>
-            </div>
-            <div style="display: flex; gap: 6px;">
-                <button class="btn-open" style="padding: 6px 10px; font-size: 13px; background: #333; color: #fff; border: 1px solid #555; border-radius: 6px; cursor: pointer;">Mở</button>
-                <button class="btn-del" style="padding: 6px 10px; font-size: 13px; background: #5a2a2a; color: #fff; border: 1px solid #773333; border-radius: 6px; cursor: pointer;">Xóa</button>
-            </div>
-        `;
-        div.querySelector(".btn-open").addEventListener("click", () => {
-            if ($("historyModal")) $("historyModal").classList.add("hidden");
-            loadWorkspace(item.id, item.source_url, 30);
-            if (item.result_url) {
-                if ($("resultViewer")) $("resultViewer").classList.remove("hidden");
-                if ($("finalVideo")) {
-                    $("finalVideo").src = item.result_url + "?t=" + Date.now();
-                    $("finalVideo").load();
-                }
-                if ($("download")) $("download").href = item.result_url;
-                if ($("progressPanel")) $("progressPanel").classList.remove("hidden");
-                if ($("status")) $("status").textContent = "Hoàn tất (Từ Lịch sử)!";
-                if ($("progress")) $("progress").value = 100;
-                if ($("percent")) $("percent").textContent = "100%";
-            }
-        });
-        div.querySelector(".btn-del").addEventListener("click", async () => {
-            if (!confirm("Bạn có chắc chắn muốn xóa vĩnh viễn video này khỏi ổ cứng?")) return;
-            const res = await fetch(`/api/history/${item.id}`, { method: "DELETE" });
-            if (res.ok) showHistory();
-        });
-        list.appendChild(div);
-    });
-}
-
-// Gọi API Lịch sử ngay khi tải trang
-showHistory();

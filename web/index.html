@@ -42,7 +42,6 @@
               <select id="mode">
                 <option value="auto">Auto detect + tracking</option>
                 <option value="fixed">Fixed mask</option>
-                <option value="keyframe">Manual Keyframes</option>
               </select>
             </div>
 
@@ -64,17 +63,6 @@
               <output id="bbox">Kéo chuột trên video</output>
             </div>
 
-            <div id="keyframeSettings" class="settings-grid hidden" style="grid-template-columns: 1fr;">
-              <div>
-                <div style="display: flex; gap: 8px; margin-top: 4px;">
-                  <button id="toggleKf" class="secondary" style="font-weight: bold; flex: 1;">♦ Thêm</button>
-                  <button id="clearKf" class="secondary" style="flex: 1;">Xóa tất cả</button>
-                </div>
-                <p style="font-size: 0.85em; opacity: 0.8; margin-top: 8px; line-height: 1.4;">
-                  Kéo thanh tua xem nội suy (màu vàng). Nhấn <strong>♦ Thêm</strong> để đóng đinh (màu đỏ).
-                </p>
-              </div>
-            </div>
 
             <div id="autoSettings" class="settings-grid" style="grid-template-columns: 2fr 1fr; gap: 12px;">
               <div>
@@ -184,6 +172,6 @@
 
 
 
-  <script src="/static/app.js?v=30"></script>
+  <script src="/static/app.js?v=31"></script>
 </body>
 </html>
