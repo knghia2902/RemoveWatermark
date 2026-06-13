@@ -16,6 +16,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 from pydantic import BaseModel
+from typing import List, Optional, Dict
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from remwm import (
