@@ -144,6 +144,12 @@ video.addEventListener("pause", () => {
 });
 window.addEventListener("resize", resizeCanvas);
 
+const resizeObserver = new ResizeObserver(() => {
+  resizeCanvas();
+});
+if ($("viewerContainer")) resizeObserver.observe($("viewerContainer"));
+resizeObserver.observe(video);
+
 function toggleFullscreen(elementId) {
     const el = $(elementId);
     if (!el) return;
