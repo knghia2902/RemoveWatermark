@@ -300,9 +300,11 @@ if ($("addFixedMask")) {
     const edVal = $("maskEnd").value;
     multiMasks.push({
       bbox: selection.bbox,
-      start_time: stVal ? Number(stVal) : null,
-      end_time: edVal ? Number(edVal) : null
+      start_time: stVal !== "" ? Number(stVal) : null,
+      end_time: edVal !== "" ? Number(edVal) : null
     });
+    selection = null;
+    if ($("bbox")) $("bbox").textContent = "Kéo chuột trên video";
     renderMaskList();
     drawOverlay();
   });
@@ -348,7 +350,10 @@ $("process").addEventListener("click", async () => {
       if (!selection?.bbox) return alert("Vui lòng vẽ ít nhất 1 mask!");
       finalMasks = [{ bbox: selection.bbox, start_time: null, end_time: null }];
     } else {
-      finalMasks = multiMasks;
+      finalMasks = [...multiMasks];
+      if (selection?.bbox) {
+        finalMasks.push({ bbox: selection.bbox, start_time: null, end_time: null });
+      }
     }
   } else {
     if (!selection?.bbox) return alert("Vui lòng khoanh ROI!");
