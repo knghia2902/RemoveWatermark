@@ -5,6 +5,7 @@ const ctx = canvas.getContext("2d");
 let uploadId = null;
 let selection = null;
 let detectedBoxes = [];
+let multiMasks = [];
 let dragging = false;
 let start = null;
 
@@ -27,6 +28,8 @@ function loadWorkspace(id, video_url, fps) {
   window.videoFps = fps;
   selection = null;
   detectedBoxes = [];
+  multiMasks = [];
+  if ($("maskList")) $("maskList").innerHTML = "";
   video.src = video_url;
   
   if ($("viewerUploadOverlay")) $("viewerUploadOverlay").classList.add("hidden");
@@ -195,8 +198,43 @@ function displayBox(box, color, fill) {
   ctx.strokeRect(x, y, w, h);
 }
 
+function renderMaskList() {
+  const container = $("maskList");
+  if (!container) return;
+  container.innerHTML = "";
+  multiMasks.forEach((m, idx) => {
+    const div = document.createElement("div");
+    div.style.display = "flex";
+    div.style.justifyContent = "space-between";
+    div.style.borderBottom = "1px solid rgba(255,255,255,0.1)";
+    div.style.paddingBottom = "4px";
+    
+    let timeStr = "Toàn video";
+    if (m.start_time !== null && m.end_time !== null) {
+      timeStr = `${m.start_time}s - ${m.end_time}s`;
+    } else if (m.start_time !== null) {
+      timeStr = `Từ ${m.start_time}s`;
+    } else if (m.end_time !== null) {
+      timeStr = `Đến ${m.end_time}s`;
+    }
+
+    div.innerHTML = `<span>Mask ${idx + 1}: ${timeStr}</span><span style="color:#ff6b79; cursor:pointer;" onclick="multiMasks.splice(${idx},1);renderMaskList();drawOverlay();">X</span>`;
+    container.appendChild(div);
+  });
+}
+
 function drawOverlay() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if ($("mode").value === "fixed") {
+    const t = video.currentTime;
+    multiMasks.forEach(m => {
+      const st = m.start_time !== null ? m.start_time : 0;
+      const ed = m.end_time !== null ? m.end_time : Infinity;
+      if (t >= st && t <= ed) {
+        displayBox(m.bbox, "#3b82f6", "rgba(59,130,246,0.2)");
+      }
+    });
+  }
   if (selection?.bbox) displayBox(selection.bbox, "#7be7c4", "rgba(123,231,196,.15)");
   detectedBoxes.forEach(box => displayBox(box, "#ff6b79", "rgba(255,107,121,.18)"));
 }
@@ -236,13 +274,37 @@ canvas.addEventListener("pointerup", () => {
 $("mode").addEventListener("change", () => {
   const mode = $("mode").value;
   $("autoSettings").classList.toggle("hidden", mode !== "auto");
+  $("fixedSettings").classList.toggle("hidden", mode !== "fixed");
   
   if (mode === "auto") $("bboxLabel").textContent = "ROI tìm kiếm logo";
-  else if (mode === "fixed") $("bboxLabel").textContent = "Vùng mask cố định";
+  else if (mode === "fixed") $("bboxLabel").textContent = "Vẽ mask cố định";
 
   detectedBoxes = [];
   drawOverlay();
 });
+
+if ($("addFixedMask")) {
+  $("addFixedMask").addEventListener("click", () => {
+    if (!selection?.bbox) return alert("Vui lòng vẽ mask trước!");
+    const stVal = $("maskStart").value;
+    const edVal = $("maskEnd").value;
+    multiMasks.push({
+      bbox: selection.bbox,
+      start_time: stVal ? Number(stVal) : null,
+      end_time: edVal ? Number(edVal) : null
+    });
+    renderMaskList();
+    drawOverlay();
+  });
+}
+
+if ($("clearFixedMasks")) {
+  $("clearFixedMasks").addEventListener("click", () => {
+    multiMasks = [];
+    renderMaskList();
+    drawOverlay();
+  });
+}
 
 $("previewDetect").addEventListener("click", async () => {
   if (!selection?.bbox || !uploadId) return;
@@ -269,7 +331,19 @@ $("previewDetect").addEventListener("click", async () => {
 
 $("process").addEventListener("click", async () => {
   if (!uploadId) return;
-  if (!selection?.bbox) return;
+  const mode = $("mode").value;
+  let finalMasks = [];
+  if (mode === "fixed") {
+    if (multiMasks.length === 0) {
+      if (!selection?.bbox) return alert("Vui lòng vẽ ít nhất 1 mask!");
+      finalMasks = [{ bbox: selection.bbox, start_time: null, end_time: null }];
+    } else {
+      finalMasks = multiMasks;
+    }
+  } else {
+    if (!selection?.bbox) return alert("Vui lòng khoanh ROI!");
+  }
+
   $("process").disabled = true;
   $("progressPanel").classList.remove("hidden");
   if ($("resultPreview")) $("resultPreview").classList.add("hidden");
@@ -287,8 +361,9 @@ $("process").addEventListener("click", async () => {
       upload_id: uploadId,
       start_time: startTime,
       end_time: endTime,
-      bbox: selection.bbox,
-      mode: $("mode").value,
+      bbox: selection?.bbox || [0,0,10,10],
+      multi_masks: finalMasks,
+      mode: mode,
       detection_prompt: $("prompt").value,
       detection_interval: detectionInterval,
       mask_padding: Number($("padding").value || 0),

@@ -29,11 +29,16 @@ Chỉ mất đúng 1 giây để khởi động Giao diện Web:
 1. Click đúp chuột vào file **`run_web.bat`**.
 2. Truy cập vào đường dẫn: **[http://localhost:8765](http://localhost:8765)** trên trình duyệt Chrome/Edge của bạn.
 
-### Cách vẽ vùng chọn (Mask):
+### Cách vẽ vùng chọn (Fixed Mask):
+Bạn có thể vẽ nhiều vùng chọn và cài đặt thời gian hiển thị riêng biệt cho từng vùng:
 1. Bấm nút tải Video từ máy bạn lên ở khung bên phải.
-2. Kéo thả chuột trên Video bên trái để vẽ một vùng mặt nạ (hình chữ nhật đỏ) bao quanh Watermark/Logo.
-3. *(Tùy chọn)* Nhập khoảng thời gian bạn muốn cắt xử lý ở phần **Thời điểm xử lý (Từ - Đến)**.
-4. Bấm **Chạy AI removal** và chờ hệ thống render siêu tốc! (Bạn có thể xem trước và tua đối chiếu video kết quả ngay bên cạnh).
+2. Tại bảng điều khiển trái, chọn chế độ **Fixed mask**.
+3. Kéo thả chuột trên Video bên trái để vẽ một vùng mặt nạ (hình chữ nhật đỏ) bao quanh Watermark/Logo.
+4. Nhập khoảng thời gian tồn tại của mặt nạ này ở mục **Thời gian tồn tại của Mask này** (Nếu bỏ trống, mặt nạ sẽ áp dụng cho toàn bộ video).
+5. Bấm **[➕ Thêm mặt nạ]**.
+6. (Tiếp tục lặp lại các bước 3-5 nếu bạn muốn che thêm các logo khác ở các khoảng thời gian khác nhau).
+7. *(Tùy chọn)* Nhập khoảng thời gian bạn muốn cắt xử lý ở phần **Thời điểm xử lý (Từ - Đến)** để giới hạn thời lượng video render.
+8. Bấm **Chạy AI removal** và chờ hệ thống render siêu tốc!
 
 ---
 

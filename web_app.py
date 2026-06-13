@@ -51,11 +51,17 @@ florence_processor = None
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
+class FixedMask(BaseModel):
+    bbox: List[int]
+    start_time: Optional[float] = None
+    end_time: Optional[float] = None
+
 class ProcessRequest(BaseModel):
     upload_id: str
     start_time: float
     end_time: Optional[float] = None
     bbox: List[int] = None
+    multi_masks: List[FixedMask] = []
     mode: str = "fixed"
     detection_prompt: str = "small watermark logo"
     detection_interval: int = 10
@@ -312,14 +318,13 @@ def process_job(job_id, source, output, request):
         encode_options = quality_presets.get(request.quality, quality_presets["high"])
 
         with processing_lock:
-            selected_bbox = validate_bbox(request.bbox, width, height)
             if request.mode == "auto":
+                selected_bbox = validate_bbox(request.bbox, width, height)
                 frame_boxes = detect_moving_boxes(
                     job_id, cap, start_frame, total, selected_bbox, request.detection_prompt, interval
                 )
                 base_progress = 35
             else:
-                frame_boxes = {frame: selected_bbox for frame in range(start_frame, total)}
                 base_progress = 0
 
             update_job(
@@ -367,14 +372,28 @@ def process_job(job_id, source, output, request):
                     break
                 if frame_idx >= start_frame:
                     mask = np.zeros((height, width), dtype=np.uint8)
-                    x1, y1, x2, y2 = clamp_bbox(
-                        frame_boxes[frame_idx], width, height, padding
-                    )
-                    mask[y1:y2 + 1, x1:x2 + 1] = 255
-                    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    result_bgr = process_image_with_lama(rgb, mask, model)
-                    mask_3d = mask[:, :, np.newaxis] / 255.0
-                    frame = (frame * (1 - mask_3d) + result_bgr * mask_3d).astype(np.uint8)
+                    has_mask = False
+                    current_time = frame_idx / fps
+
+                    if request.mode == "auto":
+                        if frame_idx in frame_boxes:
+                            x1, y1, x2, y2 = clamp_bbox(frame_boxes[frame_idx], width, height, padding)
+                            mask[y1:y2 + 1, x1:x2 + 1] = 255
+                            has_mask = True
+                    else:
+                        for m in request.multi_masks:
+                            st = m.start_time if m.start_time is not None else 0.0
+                            ed = m.end_time if m.end_time is not None else float('inf')
+                            if st <= current_time <= ed:
+                                x1, y1, x2, y2 = clamp_bbox(m.bbox, width, height, padding)
+                                mask[y1:y2 + 1, x1:x2 + 1] = 255
+                                has_mask = True
+
+                    if has_mask:
+                        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        result_bgr = process_image_with_lama(rgb, mask, model)
+                        mask_3d = mask[:, :, np.newaxis] / 255.0
+                        frame = (frame * (1 - mask_3d) + result_bgr * mask_3d).astype(np.uint8)
                 encoder.stdin.write(frame.tobytes())
                 frame_idx += 1
                 if frame_idx % 3 == 0 or frame_idx == total:

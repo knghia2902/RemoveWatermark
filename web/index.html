@@ -62,6 +62,25 @@
               <label id="bboxLabel">ROI tìm kiếm logo</label>
               <output id="bbox">Kéo chuột trên video</output>
             </div>
+            <div id="fixedSettings" class="settings-grid hidden" style="grid-template-columns: 1fr; margin-bottom: -4px;">
+              <div>
+                <label>Thời gian tồn tại của Mask này</label>
+                <div class="time-row" style="display: flex; gap: 6px; align-items: center; margin-bottom: 8px;">
+                  <div style="display: flex; flex: 1;">
+                    <input id="maskStart" type="number" min="0" step="0.01" value="0" style="width: 100%;">
+                  </div>
+                  <span style="color: #666; font-weight: bold;">-</span>
+                  <div style="display: flex; flex: 1;">
+                    <input id="maskEnd" type="number" min="0" step="0.01" placeholder="Hết video" style="width: 100%;">
+                  </div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button id="addFixedMask" class="secondary" style="font-weight: bold; flex: 1;">➕ Thêm mặt nạ</button>
+                  <button id="clearFixedMasks" class="secondary" style="flex: 1;">Xóa tất cả</button>
+                </div>
+                <div id="maskList" style="margin-top: 12px; font-size: 0.85em; display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 6px; padding: 4px;"></div>
+              </div>
+            </div>
 
 
             <div id="autoSettings" class="settings-grid" style="grid-template-columns: 2fr 1fr; gap: 12px;">
