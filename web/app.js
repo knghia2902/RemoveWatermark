@@ -116,6 +116,7 @@ video.addEventListener("timeupdate", () => {
     $("seek").value = video.currentTime;
   }
   $("currentTime").textContent = `${video.currentTime.toFixed(2)}s`;
+  drawOverlay();
   if ($("finalVideo") && !$("resultViewer").classList.contains("hidden")) {
       if (!isSeeking && $("finalVideo").readyState >= 2 && Math.abs($("finalVideo").currentTime - video.currentTime) > 0.4) {
           $("finalVideo").currentTime = video.currentTime;
@@ -210,21 +211,24 @@ function renderMaskList() {
   container.innerHTML = "";
   multiMasks.forEach((m, idx) => {
     const div = document.createElement("div");
-    div.style.display = "flex";
-    div.style.justifyContent = "space-between";
-    div.style.borderBottom = "1px solid rgba(255,255,255,0.1)";
-    div.style.paddingBottom = "4px";
+    div.style.display = "inline-flex";
+    div.style.alignItems = "center";
+    div.style.gap = "6px";
+    div.style.background = "rgba(59,130,246,0.2)";
+    div.style.border = "1px solid rgba(59,130,246,0.5)";
+    div.style.borderRadius = "99px";
+    div.style.padding = "4px 10px";
     
     let timeStr = "Toàn video";
     if (m.start_time !== null && m.end_time !== null) {
-      timeStr = `${m.start_time}s - ${m.end_time}s`;
+      timeStr = `${m.start_time}s-${m.end_time}s`;
     } else if (m.start_time !== null) {
       timeStr = `Từ ${m.start_time}s`;
     } else if (m.end_time !== null) {
       timeStr = `Đến ${m.end_time}s`;
     }
 
-    div.innerHTML = `<span>Mask ${idx + 1}: ${timeStr}</span><span style="color:#ff6b79; cursor:pointer;" onclick="multiMasks.splice(${idx},1);renderMaskList();drawOverlay();">X</span>`;
+    div.innerHTML = `<span style="color:#dbe7f4; font-weight: 500;">M${idx + 1}: ${timeStr}</span><span style="color:#ff6b79; cursor:pointer; font-weight: bold; margin-left: 2px;" onclick="multiMasks.splice(${idx},1);renderMaskList();drawOverlay();" title="Xóa mask này">×</span>`;
     container.appendChild(div);
   });
 }
